@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# Dev preset maybe targeted for testing hardware of handheld devices like Aya Neo, with linux-zen kernel and minimal package set
+
 rm -rf /tmp/builder-releasetag
 rm -rf /tmp/build_temp_ver
 export DISTRO_NAME="HoloISO"

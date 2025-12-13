@@ -1,4 +1,7 @@
 #!/bin/bash
+
+#Guessing unfinished nvidia support, only difference betwen beta and this is kernel and tag, packages are either missing or same as beta
+
 rm -rf /tmp/builder-releasetag
 rm -rf /tmp/build_temp_ver
 export DISTRO_NAME="HoloISO"

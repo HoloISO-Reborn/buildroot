@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# Main release preset for HoloISO
+
 rm -rf /tmp/builder-releasetag
 rm -rf /tmp/build_temp_ver
 export DISTRO_NAME="HoloISO"

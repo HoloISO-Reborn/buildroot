@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# This dev preset maybe was used as hardware test iso, for testing if the setup works, cause its missing lot of stuff and has only essentials
+
 rm -rf /tmp/builder-releasetag
 rm -rf /tmp/build_temp_ver
 export DISTRO_NAME="HoloISO"

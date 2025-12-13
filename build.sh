@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# SCRIPT USAGE:
+# sudo build.sh
+# --flavor <flavor_manifest_name>         (required) Specify which preset to use from presets/ folder
+# --snapshot_ver <snapshot_version>       (required) Specify snapshot version string, usually date or custom string
+# --workdir <working_directory>           (required) Specify working directory for building
+# --output-dir <output_directory>         (optional) Specify output directory for final images,
+# --add-release                           (optional) Makes release metadata, forces output to be named "holoiso-images"
+# --rclone_path
+# --rclone_root
+# --donotcompress                         (optional) Skip compression of final image, mainly for testing purposes, cannot create release with this flag
+
 SCRIPT=$(realpath "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 
