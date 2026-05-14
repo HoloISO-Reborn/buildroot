@@ -159,7 +159,7 @@ mkdir -p ${ROOT_WORKDIR}
 fallocate -l 10000MB ${WORKDIR}/work.img
 mkfs.btrfs ${WORKDIR}/work.img
 mkdir -p ${WORKDIR}/rootfs_mnt
-mount -t btrfs -o loop,compress-force=zstd:1,discard,noatime,nodiratime ${WORKDIR}/work.img ${ROOT_WORKDIR}
+mount -t btrfs -o loop,compress=zstd:1,autodefrag,noatime,nodiratime ${WORKDIR}/work.img ${ROOT_WORKDIR}
 
 echo "(1/6) Bootstrapping main filesystem"
 # Start by bootstrapping essentials
