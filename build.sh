@@ -114,6 +114,35 @@ source $BUILD_FLAVOR_MANIFEST
 PACCFG=${SCRIPTPATH}/pacman-build-${BUILD_FLAVOR_MANIFEST_ID}.conf
 PACCFG_HWSUPPORT=${SCRIPTPATH}/pacman-hwsupport-${BUILD_FLAVOR_MANIFEST_ID}.conf
 
+pacstrap_retry() {
+	local cfg="$1"
+	local root="$2"
+	shift 2
+
+	local log
+	log="$(mktemp)"
+
+	for attempt in 1 2 3; do
+		echo "pacstrap attempt $attempt..."
+
+		if pacstrap -C "$cfg" "$root" "$@" > >(tee "$log") 2>&1; then
+			rm -f "$log"
+			return 0
+		fi
+
+		echo "pacstrap failed, removing only corrupted cached packages..."
+
+		grep -oE '/[^ ]+\.pkg\.tar\.(zst|xz)' "$log" | sort -u | while read -r pkg; do
+			echo "Removing bad cached package: $pkg"
+			rm -f "$pkg" "$pkg.sig"
+		done
+
+		rm -f /var/cache/pacman/pkg/*.part
+	done
+
+	rm -f "$log"
+	return 1
+}
 
 ROOT_WORKDIR=${WORKDIR}/rootfs_mnt
 echo "Preparing to create deployment image..."
@@ -137,9 +166,9 @@ echo "(1/6) Bootstrapping main filesystem"
 mkdir -p ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs
 mkdir -p ${ROOT_WORKDIR}/var/cache/pacman/pkg
 mount --bind /var/cache/pacman/pkg/ ${ROOT_WORKDIR}/var/cache/pacman/pkg
-pacstrap -C ${PACCFG} ${ROOT_WORKDIR} ${BASE_BOOTSTRAP_PKGS}
+pacstrap_retry ${PACCFG} ${ROOT_WORKDIR} ${BASE_BOOTSTRAP_PKGS}
 echo "(1.5/6) Bootstrapping kernel..."
-pacstrap -C ${PACCFG_HWSUPPORT} ${ROOT_WORKDIR} ${KERNELCHOICE} ${KERNELCHOICE}-headers
+pacstrap_retry ${PACCFG_HWSUPPORT} ${ROOT_WORKDIR} ${KERNELCHOICE} ${KERNELCHOICE}-headers
 
 echo "(2/6) Generating fstab..."
 
@@ -149,7 +178,7 @@ echo -e ${FSTAB} > ${ROOT_WORKDIR}/etc/fstab
 sed -i 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/g' ${ROOT_WORKDIR}/etc/sudoers
 
 echo "(3/6) Bootstrapping HoloISO core root"
-pacstrap -C ${PACCFG} ${ROOT_WORKDIR} ${UI_BOOTSTRAP}
+pacstrap_retry ${PACCFG} ${ROOT_WORKDIR} ${UI_BOOTSTRAP}
 rm ${ROOT_WORKDIR}/etc/pacman.conf
 cp ${PACCFG} ${ROOT_WORKDIR}/etc/pacman.conf
 echo -e $OS_RELEASE > ${ROOT_WORKDIR}/etc/os-release
