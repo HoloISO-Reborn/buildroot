@@ -210,7 +210,12 @@ fi
 
 echo "(5/6) Stop doing things in container..."
 # Cleanup
-umount -l ${ROOT_WORKDIR}/var/cache/pacman/pkg/
+#umount -l ${ROOT_WORKDIR}/var/cache/pacman/pkg/
+
+findmnt -R -n -o TARGET "${ROOT_WORKDIR}" | \
+    tac | \
+    tail -n +2 | \
+    xargs -r umount -l
 
 # Finish for now
 echo "(6/6) Packaging snapshot..."
