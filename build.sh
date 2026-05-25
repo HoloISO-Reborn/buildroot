@@ -211,11 +211,21 @@ fi
 echo "(5/6) Stop doing things in container..."
 # Cleanup
 #umount -l ${ROOT_WORKDIR}/var/cache/pacman/pkg/
+echo "Unmounting nested mounts under ${ROOT_WORKDIR}..."
 
 findmnt -R -n -o TARGET "${ROOT_WORKDIR}" | \
-    tac | \
-    tail -n +2 | \
-    xargs -r umount -l
+    sort -r | \
+    while read -r mountpoint; do
+        if [[ "$mountpoint" == "${ROOT_WORKDIR}" ]]; then
+            echo "Skipping root mount: $mountpoint"
+            continue
+        fi
+
+        echo "Unmounting: $mountpoint"
+        umount -l "$mountpoint" || {
+            echo "WARNING: failed to unmount: $mountpoint"
+        }
+    done
 
 # Finish for now
 echo "(6/6) Packaging snapshot..."
