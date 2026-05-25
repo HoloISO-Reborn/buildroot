@@ -210,34 +210,39 @@ fi
 
 echo "(5/6) Stop doing things in container..."
 # Cleanup
-#umount -l ${ROOT_WORKDIR}/var/cache/pacman/pkg/
-echo "Unmounting nested mounts under ${ROOT_WORKDIR}..."
-
-findmnt -R -n -o TARGET "${ROOT_WORKDIR}" | \
-    sort -r | \
-    while read -r mountpoint; do
-        if [[ "$mountpoint" == "${ROOT_WORKDIR}" ]]; then
-            echo "Skipping root mount: $mountpoint"
-            continue
-        fi
-
-        echo "Unmounting: $mountpoint"
-        umount -l "$mountpoint" || {
-            echo "WARNING: failed to unmount: $mountpoint"
-        }
-    done
+umount -l ${ROOT_WORKDIR}/var/cache/pacman/pkg/ 2>/dev/null || true
+sync
 
 # Finish for now
 echo "(6/6) Packaging snapshot..."
-btrfs subvolume snapshot -r ${ROOT_WORKDIR} ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs/${FLAVOR_BUILDVER}
-btrfs send -f ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs/${FLAVOR_BUILDVER}
-umount -l ${ROOT_WORKDIR} && umount -l ${WORKDIR}/work.img && rm -rf ${WORKDIR} && ${WORKDIR}/work.img
+IMAGE="${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img"
+SNAPSHOT="${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs/${FLAVOR_BUILDVER}"
+
+rm -f "${IMAGE}" "${IMAGE}.zst"
+
+btrfs subvolume snapshot -r ${ROOT_WORKDIR} ${SNAPSHOT} || exit 1
+
+btrfs send -f ${IMAGE} ${SNAPSHOT} || {
+	echo "ERROR: btrfs send failed"
+	rm -f "${IMAGE}"
+	exit 1
+}
+
+if [[ ! -s "${IMAGE}" ]]; then
+	echo "ERROR: btrfs send created empty image"
+	rm -f "${IMAGE}"
+	exit 1
+fi
+
+umount -l ${ROOT_WORKDIR} 2>/dev/null || true
+rm -rf ${WORKDIR}
+
 if [[ -z "${NO_COMPRESS}" ]]; then
 	echo "Compressing image..."
-	zstd --ultra -z ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img -o ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
-	rm -rf ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img
-	chown 1000:1000 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
-	chmod 777 ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst
+	zstd --ultra -15 -T0 -f ${IMAGE} -o ${IMAGE}.zst || exit 1
+	rm -rf ${IMAGE}
+	chown 1000:1000 ${IMAGE}.zst
+	chmod 777 ${IMAGE}.zst
 fi
 
 if [[ "${IS_HOME_BUILD}" == "true" ]]; then
