@@ -97,7 +97,7 @@ esac
 done
 
 # Check if everything is set.
-if [[ -z "{$BUILD_FLAVOR_MANIFEST}" ]]; then
+if [[ -z "${BUILD_FLAVOR_MANIFEST}" ]]; then
 	echo "Build flavor was not set. Aborting."
 	exit 0
 fi
@@ -157,75 +157,76 @@ mkdir -p ${WORKDIR}
 mkdir -p ${OUTPUT}
 mkdir -p ${ROOT_WORKDIR}
 fallocate -l 10000MB ${WORKDIR}/work.img
-mkfs.btrfs ${WORKDIR}/work.img
+mkfs.btrfs -f "${WORKDIR}/work.img"
 mkdir -p ${WORKDIR}/rootfs_mnt
-mount -t btrfs -o loop,compress=zstd:1,noatime,nodiratime ${WORKDIR}/work.img ${ROOT_WORKDIR}
+mount -t btrfs -o loop,compress=zstd:1,noatime,nodiratime \
+    "${WORKDIR}/work.img" "${ROOT_WORKDIR}"
+btrfs subvolume create "${ROOT_WORKDIR}/@root"
+ROOTFS="${ROOT_WORKDIR}/@root"
 
 echo "(1/6) Bootstrapping main filesystem"
 # Start by bootstrapping essentials
-mkdir -p ${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs
-mkdir -p ${ROOT_WORKDIR}/var/cache/pacman/pkg
-mount --bind /var/cache/pacman/pkg/ ${ROOT_WORKDIR}/var/cache/pacman/pkg
-pacstrap_retry ${PACCFG} ${ROOT_WORKDIR} ${BASE_BOOTSTRAP_PKGS}
+mkdir -p ${ROOTFS}/${OS_FS_PREFIX}_root/rootfs
+mkdir -p ${ROOTFS}/var/cache/pacman/pkg
+mount --bind /var/cache/pacman/pkg/ ${ROOTFS}/var/cache/pacman/pkg
+pacstrap_retry ${PACCFG} ${ROOTFS} ${BASE_BOOTSTRAP_PKGS}
 echo "(1.5/6) Bootstrapping kernel..."
-pacstrap_retry ${PACCFG_HWSUPPORT} ${ROOT_WORKDIR} ${KERNELCHOICE} ${KERNELCHOICE}-headers
+pacstrap_retry ${PACCFG_HWSUPPORT} ${ROOTFS} ${KERNELCHOICE} ${KERNELCHOICE}-headers
 
 echo "(2/6) Generating fstab..."
 
 # fstab
-echo -e ${FSTAB} > ${ROOT_WORKDIR}/etc/fstab
+echo -e ${FSTAB} > ${ROOTFS}/etc/fstab
 
-sed -i 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/g' ${ROOT_WORKDIR}/etc/sudoers
+sed -i 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/g' ${ROOTFS}/etc/sudoers
 
 echo "(3/6) Bootstrapping HoloISO core root"
-pacstrap_retry ${PACCFG} ${ROOT_WORKDIR} ${UI_BOOTSTRAP}
-rm ${ROOT_WORKDIR}/etc/pacman.conf
-cp ${PACCFG} ${ROOT_WORKDIR}/etc/pacman.conf
-echo -e $OS_RELEASE > ${ROOT_WORKDIR}/etc/os-release
-echo -e $HOLOISO_RELEASE > ${ROOT_WORKDIR}/etc/holoiso-release
-echo -e $IMAGE_HOSTNAME > ${ROOT_WORKDIR}/etc/hostname
-arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS}
+pacstrap_retry ${PACCFG} ${ROOTFS} ${UI_BOOTSTRAP}
+rm ${ROOTFS}/etc/pacman.conf
+cp ${PACCFG} ${ROOTFS}/etc/pacman.conf
+echo -e $OS_RELEASE > ${ROOTFS}/etc/os-release
+echo -e $HOLOISO_RELEASE > ${ROOTFS}/etc/holoiso-release
+echo -e $IMAGE_HOSTNAME > ${ROOTFS}/etc/hostname
+arch-chroot ${ROOTFS} systemctl enable ${FLAVOR_CHROOT_SCRIPTS}
 echo "(4/6) Copying postcopy items..."
 if [[ -d "${SCRIPTPATH}/postcopy_${POSTCOPY_DIR}" ]]; then
-	cp -r ${SCRIPTPATH}/postcopy_${POSTCOPY_DIR}/* ${ROOT_WORKDIR}
-	rm ${ROOT_WORKDIR}/upstream.sh
-	for dirs in ${MKNEWDIR}; do mkdir ${ROOT_WORKDIR}$dirs; done
+	cp -r ${SCRIPTPATH}/postcopy_${POSTCOPY_DIR}/* ${ROOTFS}
+	rm ${ROOTFS}/upstream.sh
+	for dirs in ${MKNEWDIR}; do mkdir ${ROOTFS}$dirs; done
 	if [[ -n "$FLAVOR_PLYMOUTH_THEME" ]]; then
 		echo "Setting $FLAVOR_PLYMOUTH_THEME theme for plymouth bootsplash..."
-		arch-chroot ${ROOT_WORKDIR} plymouth-set-default-theme -R $FLAVOR_PLYMOUTH_THEME
+		arch-chroot ${ROOTFS} plymouth-set-default-theme -R $FLAVOR_PLYMOUTH_THEME
 	fi
-	for binary in ${POSTCOPY_BIN_EXECUTION}; do arch-chroot ${ROOT_WORKDIR} $binary && rm -rf ${ROOT_WORKDIR}/usr/bin/$binary; done
-	echo -e "${PACMAN_ONLOAD}" > ${ROOT_WORKDIR}/usr/lib/systemd/system/var-lib-pacman.mount
-	arch-chroot ${ROOT_WORKDIR} systemctl enable ${FLAVOR_CHROOT_SCRIPTS}
+	for binary in ${POSTCOPY_BIN_EXECUTION}; do arch-chroot ${ROOTFS} $binary && rm -rf ${ROOTFS}/usr/bin/$binary; done
+	echo -e "${PACMAN_ONLOAD}" > ${ROOTFS}/usr/lib/systemd/system/var-lib-pacman.mount
+	arch-chroot ${ROOTFS} systemctl enable ${FLAVOR_CHROOT_SCRIPTS}
 	echo "(4.5/6) Generating en_US.UTF-8 locale..."
-	sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' ${ROOT_WORKDIR}/etc/locale.gen
-	echo "/usr/bin/bash" >> ${ROOT_WORKDIR}/etc/shells
-	arch-chroot ${ROOT_WORKDIR} locale-gen
-	arch-chroot ${ROOT_WORKDIR} localectl set-locale LANG=en_US.UTF-8
-	echo "LANG=en_US.UTF-8" > ${ROOT_WORKDIR}/etc/locale.conf
-	arch-chroot ${ROOT_WORKDIR} setcap 'cap_sys_nice=eip' /usr/bin/gamescope-generic
+	sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' ${ROOTFS}/etc/locale.gen
+	echo "/usr/bin/bash" >> ${ROOTFS}/etc/shells
+	arch-chroot ${ROOTFS} locale-gen
+	arch-chroot ${ROOTFS} localectl set-locale LANG=en_US.UTF-8
+	echo "LANG=en_US.UTF-8" > ${ROOTFS}/etc/locale.conf
+	arch-chroot ${ROOTFS} setcap 'cap_sys_nice=eip' /usr/bin/gamescope-generic
 	echo "Removing unnecessary packages post-factum..."
-	arch-chroot ${ROOT_WORKDIR} pacman -Rns --noconfirm ${POSTREMOVE_PACKAGES}
+	arch-chroot ${ROOTFS} pacman -Rns --noconfirm ${POSTREMOVE_PACKAGES}
 fi
 
 echo "(5/6) Stop doing things in container..."
 # Cleanup
-umount -l ${ROOT_WORKDIR}/var/cache/pacman/pkg/ 2>/dev/null || true
+umount -l ${ROOTFS}/var/cache/pacman/pkg/ 2>/dev/null || true
 sync
 
 # Finish for now
 echo "(6/6) Packaging snapshot..."
 IMAGE="${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img"
-SNAPSHOT="${ROOT_WORKDIR}/${OS_FS_PREFIX}_root/rootfs/${FLAVOR_BUILDVER}"
+SNAPSHOT="${ROOT_WORKDIR}/${FLAVOR_BUILDVER}"
 
-rm -f "${IMAGE}" "${IMAGE}.zst"
+btrfs subvolume snapshot -r "${ROOTFS}" "${SNAPSHOT}" || exit 1
 
-btrfs subvolume snapshot -r ${ROOT_WORKDIR} ${SNAPSHOT} || exit 1
-
-btrfs send -f ${IMAGE} ${SNAPSHOT} || {
-	echo "ERROR: btrfs send failed"
-	rm -f "${IMAGE}"
-	exit 1
+btrfs send "${SNAPSHOT}" > "${IMAGE}" || {
+    echo "ERROR: btrfs send failed"
+    rm -f "${IMAGE}"
+    exit 1
 }
 
 if [[ ! -s "${IMAGE}" ]]; then
@@ -234,8 +235,9 @@ if [[ ! -s "${IMAGE}" ]]; then
 	exit 1
 fi
 
-umount -l ${ROOT_WORKDIR} 2>/dev/null || true
-rm -rf ${WORKDIR}
+umount -l "${ROOTFS}/var/cache/pacman/pkg" 2>/dev/null || true
+umount -l "${ROOT_WORKDIR}" 2>/dev/null || true
+rm -rf "${WORKDIR}"
 
 if [[ -z "${NO_COMPRESS}" ]]; then
 	echo "Compressing image..."
