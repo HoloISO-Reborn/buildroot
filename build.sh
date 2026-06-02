@@ -156,7 +156,10 @@ rm -rf ${WORKDIR}/work.img
 mkdir -p ${WORKDIR}
 mkdir -p ${OUTPUT}
 mkdir -p ${ROOT_WORKDIR}
-fallocate -l 10000MB ${WORKDIR}/work.img
+if ! fallocate -l 10000M "${WORKDIR}/work.img"; then
+    echo "fallocate failed, using dd instead..."
+    dd if=/dev/zero of="${WORKDIR}/work.img" bs=1M count=10000 status=progress
+fi
 mkfs.btrfs -f "${WORKDIR}/work.img"
 mkdir -p ${WORKDIR}/rootfs_mnt
 mount -t btrfs -o loop,compress=zstd:1,noatime,nodiratime \
