@@ -16,11 +16,11 @@ export FLAVOR_CHROOT_SCRIPTS="sddm bluetooth sshd systemd-timesyncd NetworkManag
 export FLAVOR_PLYMOUTH_THEME="steamos"
 export FLAVOR_FINAL_DISTRIB_IMAGE=$FLAVOR_BUILDVER
 export KERNELCHOICE="linux-catchyos"
-export NVIDIA_SUPPORT=[
-    ("nvidia-open-dkms", "nvidia-utils", "lib32-nvidia-utils"),
-    ("nvidia-dkms", "nvidia-utils", "lib32-nvidia-utils"),
-    ("nvidia-470xx-dkms", "nvidia-470xx-utils", "lib32-nvidia-470xx-utils") # will require haswell iGPU for gamescope to work, but is the only way to support Kepler GPUs on newer releases, else fallback to desktop driver and lose gamescope support entirely
-]
+#export NVIDIA_SUPPORT=[
+#    ("nvidia-open-dkms", "nvidia-utils", "lib32-nvidia-utils"),
+#    ("nvidia-dkms", "nvidia-utils", "lib32-nvidia-utils"),
+#    ("nvidia-470xx-dkms", "nvidia-470xx-utils", "lib32-nvidia-470xx-utils") # will require haswell iGPU for gamescope to work, but is the only way to support Kepler GPUs on newer releases, else fallback to desktop driver and lose gamescope support entirely
+#]
 export BASE_BOOTSTRAP_PKGS="base base-devel linux-firmware amd-ucode intel-ucode dkms jq btrfs-progs addons/grub efibootmgr openssh"
 export STEAM_BOOTSTRAP="lib32-gamescope gamescope gamemode lib32-gamemode mangohud steam-im-modules steam-jupiter-stable"
 export UI_BOOTSTRAP="perf pipewire-x11-bell wakehook zip zram-generator gst-plugin-pipewire caps criu cpupower lib32-libnm lib32-libpulse lib32-libsndfile lib32-libogg lib32-openal python-build less nano vim fuse vi flatpak plymouth python-installer python-setuptools python-wheel arch-install-scripts archlinux-keyring holo-keyring ark cups curl dolphin ffmpegthumbs git go gwenview hunspell hunspell-en_us kdegraphics-thumbnailers konsole kwrite lib32-pipewire lib32-pipewire-jack lib32-pipewire-v4l2 libva lib32-libva libva-utils libva-mesa-driver libva-intel-driver lib32-libva-mesa-driver lib32-libva-intel-driver lib32-vulkan-radeon lib32-vulkan-intel mesa lib32-mesa noto-fonts-cjk pipewire pipewire-alsa pipewire-jack wireplumber pipewire-pulse pipewire-v4l2 plasma-meta plasma-nm print-manager spectacle tar ufw vlc vulkan-intel vulkan-radeon wget zsh xbindkeys ttf-twemoji-default ttf-hack ttf-dejavu pkgconf pavucontrol partitionmanager bluez-plugins bluez-utils xf86-video-amdgpu python-evdev dmidecode python-crcmod python-click python-progressbar python-hid jq alsa-utils parted e2fsprogs udisks2 kdialog gcc-libs glibc libcap.so libdisplay-info.so libdrm libliftoff.so libpipewire-0.3.so libvulkan.so libwlroots.so libx11 libxcb libxcomposite libxdamage libxext libxfixes libxkbcommon.so libxmu libxrender libxres libxtst libxxf86vm openvr sdl2 vulkan-icd-loader vulkan-mesa-layers lib32-vulkan-mesa-layers wayland xorg-server-xwayland ${STEAM_BOOTSTRAP}"
