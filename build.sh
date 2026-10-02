@@ -216,7 +216,7 @@ fi
 
 echo "(5/6) Stop doing things in container..."
 # Cleanup
-umount -l ${ROOTFS}/var/cache/pacman/pkg/ 2>/dev/null || true
+umount "$ROOTFS/var/cache/pacman/pkg" || exit 1
 sync
 
 # Finish for now
@@ -262,6 +262,6 @@ if [[ "${IS_HOME_BUILD}" == "true" ]]; then
 		rclone copy ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.sha256 ${RC_PATH}:/${RC_ROOT}/$(echo ${OUTPUT} | sed 's#.*holoiso#holoiso#g') -L --progress
 		rclone copy ${OUTPUT}/${FLAVOR_FINAL_DISTRIB_IMAGE}.img.zst ${RC_PATH}:/${RC_ROOT}/$(echo ${OUTPUT} | sed 's#.*holoiso#holoiso#g') -L --progress
 	fi
-fi  
+fi
 
 echo "Build complete."
