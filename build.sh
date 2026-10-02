@@ -226,6 +226,11 @@ SNAPSHOT="${ROOT_WORKDIR}/${FLAVOR_BUILDVER}"
 
 btrfs subvolume snapshot -r "${ROOTFS}" "${SNAPSHOT}" || exit 1
 
+btrfs filesystem sync "${ROOT_WORKDIR}" || {
+    echo "ERROR: failed to commit Btrfs snapshot transaction"
+    exit 1
+}
+
 btrfs send "${SNAPSHOT}" > "${IMAGE}" || {
     echo "ERROR: btrfs send failed"
     rm -f "${IMAGE}"
