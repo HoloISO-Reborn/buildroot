@@ -11,6 +11,8 @@
 # --rclone-root
 # --donotcompress                         (optional) Skip compression of final image, mainly for testing purposes, cannot create release with this flag
 
+set -e
+
 SCRIPT=$(realpath "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 
