@@ -231,11 +231,7 @@ btrfs filesystem sync "${ROOT_WORKDIR}" || {
     exit 1
 }
 
-btrfs send "${SNAPSHOT}" > "${IMAGE}" || {
-    echo "ERROR: btrfs send failed"
-    rm -f "${IMAGE}"
-    exit 1
-}
+btrfs send "${SNAPSHOT}" > "${IMAGE}"
 
 if [[ ! -s "${IMAGE}" ]]; then
 	echo "ERROR: btrfs send created empty image"
